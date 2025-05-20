@@ -1,0 +1,38 @@
+CLASS DESIGN
+The classes I implemented are hash_table and country_element. The hash_table is responsible for storing and retrieving countries efficiently using double hashing, while country_element is responsible for managing tree-based queries and storing data per country.
+
+The hash_table contains a fixed-size array of hash_element structs. Each hash_element contains a pointer to a country_element object and metadata like status and collision count. The hash table supports INSERT, LOOKUP, REMOVE, and EXIT operations and uses a double hashing strategy to minimize clustering.
+
+The country_element class stores an array of linked lists, where each index corresponds to a country loaded from the file. It also maintains a binary search tree (BST) for fast range-based queries on data such as FIND, BUILD, DELETE, LIMITS, and RANGE. The tree_load function handles two-pass CSV loading and integrates tightly with the hash table to store countries at hashed indices.
+
+ALTERNATIVES AND JUSTIFICATION
+I chose to use open addressing with double hashing in the hash table instead of separate chaining to avoid dynamic memory allocations for chaining, which would increase complexity. Double hashing provides better probe distribution and reduces primary clustering compared to linear probing.
+
+For storing data within country_element, I reused the linked list structure from Project 3 to store time-series data. This was kept because it simplifies insertion, deletion, and updates, and avoids resizing issues that dynamic arrays would introduce.
+
+I initially thought about moving all logic to hash_table, but since tree operations (like FIND, RANGE, DELETE, etc.) logically belong to a specific country’s dataset, I kept tree_load, tree_build, and other tree operations in the country_element class for better separation of concerns.
+
+RUNTIME ANALYSIS
+Proof that LOOKUP has average-case O(1) and worst-case O(N):
+In the average case, with good hash distribution and a low load factor, the number of collisions is small (O(1)). The lookup cost is then a constant number of probes to find the correct index in the array → O(1).
+In the worst case, where many collisions occur or all entries hash to the same index, we may have to search through the entire array → O(N).
+
+Proof that INSERT has average-case O(1) and worst-case O(N):
+INSERT follows the same probing strategy. In the best/average case, a free slot is found quickly. In the worst case, it may take up to N probes to find a slot if many are occupied or the table is full.
+
+Proof that TREE_LIST has worst-case O(N):
+The function iterates through all indices of country_list to find the match by name. This takes O(N) time in the worst case. No binary search or hashing is used here since the name is not hashed directly.
+
+TREE_LOAD runtime:
+The function performs two passes over the file:
+
+First pass: INSERT each unique country using hash table → O(N)
+Second pass: Load data into the corresponding linked list at the hashed index → O(N × M), where M is average number of data points per country
+So total complexity is O(N × M).
+BUILD / FIND / RANGE / DELETE / LIMITS runtime:
+
+BUILD: Computes mean for each country (O(N × M)), then builds BST → O(N log N)
+FIND: Traverses BST and filters countries → O(N)
+RANGE: One pass over countries → O(N)
+DELETE: Traverses tree and updates country lists → O(log N) for balanced tree
+LIMITS: Also a full traversal → O(N)
